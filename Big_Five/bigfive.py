@@ -223,6 +223,71 @@ def generar_pdf(nombre, respuestas, emociones, congruencias, puntajes_ocean):
     ]))
     elementos.append(tabla_cong)
 
+# Limitaciones
+    elementos.append(Spacer(1, 0.7*cm))
+    elementos.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#2E4057')))
+    elementos.append(Spacer(1, 0.3*cm))
+    elementos.append(Paragraph('Limitaciones del sistema', subtitulo_style))
+    elementos.append(Spacer(1, 0.3*cm))
+
+    limitaciones = [
+        'Del modelo de reconocimiento facial: entrenado en FER2013, dataset recolectado '
+        'en condiciones de laboratorio. Presenta sesgo hacia la clase neutral por '
+        'desbalance del dataset original. La resolucion de 48x48 pixeles limita la '
+        'deteccion de micro expresiones.',
+
+        'Del diseno metodologico: la foto se captura al presionar Siguiente, por lo que '
+        'puede no coincidir con la expresion espontanea. Las personas tienden a suprimir '
+        'expresiones al saber que son observadas (efecto del observador). La tabla de '
+        'congruencia fue definida teoricamente, no validada empiricamente.',
+
+        'Del instrumento: el BFI-10 es una version reducida del BFI-44 con menor '
+        'precision psicometrica. Los resultados son orientativos y no constituyen '
+        'un diagnostico psicologico.',
+    ]
+
+    for lim in limitaciones:
+        elementos.append(Paragraph(f'- {lim}', styles['Normal']))
+        elementos.append(Spacer(1, 0.2*cm))
+
+    # Referencias
+    elementos.append(Spacer(1, 0.5*cm))
+    elementos.append(Paragraph('Referencias', subtitulo_style))
+    elementos.append(Spacer(1, 0.3*cm))
+
+    referencias = [
+        'Chen, X., Liang, C., Huang, D., Real, E., Wang, K., Liu, Y., & Le, Q. (2023). '
+        'Symbolic discovery of optimization algorithms. Advances in Neural Information '
+        'Processing Systems (NeurIPS), 36.',
+
+        'Costa, P. T., & McCrae, R. R. (1992). Revised NEO Personality Inventory '
+        '(NEO-PI-R) and NEO Five-Factor Inventory (NEO-FFI) professional manual. '
+        'Psychological Assessment Resources.',
+
+        'Ekman, P. (1992). An argument for basic emotions. Cognition & Emotion, '
+        '6(3-4), 169-200.',
+
+        'Goodfellow, I., Erhan, D., Carrier, P. L., Courville, A., Mirza, M., '
+        'Hamou, B., & Bengio, Y. (2013). Challenges in representation learning: '
+        'A report on three machine learning contests. Neural Networks, 64, 59-71.',
+
+        'Rammstedt, B., & John, O. P. (2007). Measuring personality in one minute '
+        'or less: A 10-item short version of the Big Five Inventory. Journal of '
+        'Research in Personality, 41(1), 203-212.',
+
+        'Tan, M., & Le, Q. (2019). EfficientNet: Rethinking model scaling for '
+        'convolutional neural networks. International Conference on Machine '
+        'Learning (ICML), 6105-6114.',
+    ]
+
+    ref_style = ParagraphStyle('ref', parent=styles['Normal'],
+                                fontSize=8, leftIndent=20, firstLineIndent=-20)
+
+    for ref in referencias:
+        elementos.append(Paragraph(ref, ref_style))
+        elementos.append(Spacer(1, 0.2*cm))
+
+
     doc.build(elementos)
     buffer.seek(0)
     return buffer

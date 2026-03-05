@@ -45,11 +45,97 @@ if st.session_state.pagina == 'inicio':
     Durante el test, la camara registrara tus expresiones faciales
     para analizar la congruencia con tus respuestas.
     ''')
+
+    with st.expander("Limitaciones del sistema"):
+        st.markdown('''
+        **Del modelo de reconocimiento facial:**
+        - Entrenado en FER2013, dataset recolectado en condiciones de laboratorio
+          que no siempre refleja expresiones en contextos naturales.
+        - Sesgo hacia la clase neutral por desbalance del dataset original
+          (neutral: 4,965 imagenes vs disgust: 436 imagenes).
+        - Resolucion original de 48x48 pixeles limita la capacidad de
+          detectar expresiones sutiles o micro expresiones.
+
+        **Del diseno metodologico:**
+        - La foto se captura al presionar Siguiente, por lo que puede no
+          coincidir con la expresion espontanea durante la lectura.
+        - Las personas tienden a suprimir o neutralizar expresiones al
+          saber que estan siendo observadas (efecto del observador).
+        - La tabla de congruencia emocion-respuesta fue definida
+          teoricamente, no validada empiricamente.
+
+        **Del instrumento:**
+        - El BFI-10 es una version reducida del BFI-44, con menor
+          precision psicometrica por su brevedad.
+        - Los resultados son orientativos y no constituyen
+          un diagnostico psicologico.
+        ''')
+
+    with st.expander("Referencias"):
+        st.markdown('''
+        Costa, P. T., & McCrae, R. R. (1992). *Revised NEO Personality Inventory
+        (NEO-PI-R) and NEO Five-Factor Inventory (NEO-FFI) professional manual.*
+        Psychological Assessment Resources.
+
+        Chen, X., Liang, C., Huang, D., Real, E., Wang, K., Liu, Y., & Le, Q.
+        (2023). Symbolic discovery of optimization algorithms. *Advances in
+        Neural Information Processing Systems (NeurIPS), 36.*
+
+        Ekman, P. (1992). An argument for basic emotions. *Cognition & Emotion,
+        6*(3-4), 169-200.
+
+        Goodfellow, I., Erhan, D., Carrier, P. L., Courville, A., Mirza, M.,
+        Hamou, B., & Bengio, Y. (2013). Challenges in representation learning:
+        A report on three machine learning contests. *Neural Networks, 64,* 59-71.
+
+        Rammstedt, B., & John, O. P. (2007). Measuring personality in one minute
+        or less: A 10-item short version of the Big Five Inventory. *Journal of
+        Research in Personality, 41*(1), 203-212.
+
+        Tan, M., & Le, Q. (2019). EfficientNet: Rethinking model scaling for
+        convolutional neural networks. *International Conference on Machine
+        Learning (ICML),* 6105-6114.
+        ''')
+
+    with st.expander("Consentimiento informado"):
+        st.markdown('''
+        Antes de comenzar, lee y acepta las siguientes condiciones:
+
+        **Uso de la camara:**
+        - La camara se activa unicamente durante el test para capturar
+          una fotografia por pregunta.
+        - Las imagenes se procesan localmente en el momento de la captura
+          y no se almacenan en ningun servidor.
+
+        **Datos personales:**
+        - El nombre ingresado se usa unicamente para identificar el reporte generado.
+        - No se recopila, almacena ni comparte ningun dato personal.
+
+        **Reporte:**
+        - El reporte PDF se genera localmente y solo se descarga
+          si el usuario lo solicita explicitamente.
+        - Si el usuario no descarga el reporte, ningun resultado queda almacenado.
+
+        **Uso de los resultados:**
+        - Los resultados son orientativos y tienen fines exclusivamente academicos.
+        - No constituyen un diagnostico psicologico ni clinico.
+        - El sistema fue desarrollado como proyecto de aprendizaje en el marco
+          de un diplomado en Deep Learning.
+
+        **Consentimiento:**
+        Al marcar la casilla y comenzar el test, el usuario acepta el uso
+        de la camara y las condiciones descritas anteriormente.
+        ''')
+
+    acepta = st.checkbox('He leido y acepto las condiciones de uso y consentimiento informado')
     nombre = st.text_input('Ingresa tu nombre:', placeholder='Nombre completo')
-    if st.button('Comenzar test', type='primary') and nombre:
+    
+    if st.button('Comenzar test', type='primary') and nombre and acepta:
         st.session_state.nombre = nombre
         st.session_state.pagina = 'test'
         st.rerun()
+    elif st.button and nombre and not acepta:
+        st.warning('Debes aceptar el consentimiento informado para continuar')
 
 # ============================================
 # PAGINA: TEST

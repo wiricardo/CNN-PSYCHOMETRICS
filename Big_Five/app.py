@@ -68,8 +68,6 @@ if st.session_state.pagina == 'inicio':
         **Uso de los resultados:**
         - Los resultados son orientativos y tienen fines exclusivamente academicos.
         - No constituyen un diagnostico psicologico ni clinico.
-        - El sistema fue desarrollado como proyecto de aprendizaje en el marco
-          de un diplomado en Deep Learning.
         ''')
 
     with st.expander("Limitaciones del sistema"):

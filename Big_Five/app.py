@@ -46,6 +46,32 @@ if st.session_state.pagina == 'inicio':
     para analizar la congruencia con tus respuestas.
     ''')
 
+    with st.expander("Consentimiento informado", expanded=True):
+        st.markdown('''
+        Antes de comenzar, lee y acepta las siguientes condiciones:
+
+        **Uso de la camara:**
+        - La camara se activa unicamente durante el test para capturar
+          una fotografia por pregunta.
+        - Las imagenes se procesan localmente en el momento de la captura
+          y no se almacenan en ningun servidor.
+
+        **Datos personales:**
+        - El nombre ingresado se usa unicamente para identificar el reporte generado.
+        - No se recopila, almacena ni comparte ningun dato personal.
+
+        **Reporte:**
+        - El reporte PDF se genera localmente y solo se descarga
+          si el usuario lo solicita explicitamente.
+        - Si el usuario no descarga el reporte, ningun resultado queda almacenado.
+
+        **Uso de los resultados:**
+        - Los resultados son orientativos y tienen fines exclusivamente academicos.
+        - No constituyen un diagnostico psicologico ni clinico.
+        - El sistema fue desarrollado como proyecto de aprendizaje en el marco
+          de un diplomado en Deep Learning.
+        ''')
+
     with st.expander("Limitaciones del sistema"):
         st.markdown('''
         **Del modelo de reconocimiento facial:**
@@ -97,45 +123,16 @@ if st.session_state.pagina == 'inicio':
         Learning (ICML),* 6105-6114.
         ''')
 
-    with st.expander("Consentimiento informado"):
-        st.markdown('''
-        Antes de comenzar, lee y acepta las siguientes condiciones:
-
-        **Uso de la camara:**
-        - La camara se activa unicamente durante el test para capturar
-          una fotografia por pregunta.
-        - Las imagenes se procesan localmente en el momento de la captura
-          y no se almacenan en ningun servidor.
-
-        **Datos personales:**
-        - El nombre ingresado se usa unicamente para identificar el reporte generado.
-        - No se recopila, almacena ni comparte ningun dato personal.
-
-        **Reporte:**
-        - El reporte PDF se genera localmente y solo se descarga
-          si el usuario lo solicita explicitamente.
-        - Si el usuario no descarga el reporte, ningun resultado queda almacenado.
-
-        **Uso de los resultados:**
-        - Los resultados son orientativos y tienen fines exclusivamente academicos.
-        - No constituyen un diagnostico psicologico ni clinico.
-        - El sistema fue desarrollado como proyecto de aprendizaje en el marco
-          de un diplomado en Deep Learning.
-
-        **Consentimiento:**
-        Al marcar la casilla y comenzar el test, el usuario acepta el uso
-        de la camara y las condiciones descritas anteriormente.
-        ''')
-
     acepta = st.checkbox('He leido y acepto las condiciones de uso y consentimiento informado')
-    nombre = st.text_input('Ingresa tu nombre:', placeholder='Nombre completo')
-    
-    if st.button('Comenzar test', type='primary') and nombre and acepta:
-        st.session_state.nombre = nombre
-        st.session_state.pagina = 'test'
-        st.rerun()
-    elif st.button and nombre and not acepta:
-        st.warning('Debes aceptar el consentimiento informado para continuar')
+    nombre = st.text_input('Ingresa tu nombre:', placeholder='Nombre completo', disabled=not acepta)
+
+    if st.button('Comenzar test', type='primary', disabled=not acepta):
+        if not nombre:
+            st.warning('Ingresa tu nombre para continuar')
+        else:
+            st.session_state.nombre = nombre
+            st.session_state.pagina = 'test'
+            st.rerun()
 
 # ============================================
 # PAGINA: TEST

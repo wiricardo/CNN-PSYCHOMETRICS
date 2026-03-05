@@ -1,3 +1,6 @@
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
+import av
+import logging
 import streamlit as st
 import cv2
 import numpy as np
@@ -7,23 +10,32 @@ from bigfive import (
     calcular_ocean, generar_pdf, ITEMS, CLASES_ES, NOMBRES_DIM
 )
 
+st.set_page_config(page_title='BFI-10', layout='centered')
 st.markdown("""
 <style>
-[data-testid="stCameraInputButton"] {
-    display: none;
+[data-testid="stVerticalBlock"] video {
+    max-height: 280px !important;
+    width: 100% !important;
+    object-fit: cover !important;
 }
 </style>
 """, unsafe_allow_html=True)
+logger = logging.getLogger(__name__)
 
 
+class FrameCapturer(VideoTransformerBase):
+    def __init__(self):
+        self.frame = None
 
+    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+        self.frame = frame.to_ndarray(format="bgr24")
+        return frame
 
-
-st.set_page_config(page_title='BFI-10', layout='centered')
 
 # Estado inicial
 for key, val in [('pagina', 'inicio'), ('item_actual', 0),
-                  ('respuestas', {}), ('emociones', {}), ('congruencias', {})]:
+                  ('respuestas', {}), ('emociones', {}), ('congruencias', {}),
+                  ('test_run_id', 0)]:
     if key not in st.session_state:
         st.session_state[key] = val
 
@@ -135,50 +147,85 @@ if st.session_state.pagina == 'inicio':
 # ============================================
 # PAGINA: TEST
 # ============================================
-elif st.session_state.pagina == 'test':
+elif st.session_state.pagina == "test":
     yolo, efficientnet = st.cache_resource(cargar_modelos)()
     idx = st.session_state.item_actual
     item = ITEMS[idx]
 
-    st.progress(idx / 10, text=f'Pregunta {idx+1} de 10')
-    st.markdown('*Que tan de acuerdo estas con esta afirmacion?*')
+    st.progress(idx / 10, text=f"Pregunta {idx+1} de 10")
+    st.markdown("*Que tan de acuerdo estas con esta afirmacion?*")
     st.markdown(f'### {item["texto"]}')
 
     opciones = {
-        1: '1 - Muy en desacuerdo',
-        2: '2 - En desacuerdo',
-        3: '3 - Neutral',
-        4: '4 - De acuerdo',
-        5: '5 - Muy de acuerdo'
+        1: "1 - Muy en desacuerdo",
+        2: "2 - En desacuerdo",
+        3: "3 - Neutral",
+        4: "4 - De acuerdo",
+        5: "5 - Muy de acuerdo",
     }
 
-    respuesta = st.radio('', list(opciones.values()), index=2,
-                         key=f'radio_{idx}', label_visibility='collapsed')
+    respuesta = st.radio(
+        "",
+        list(opciones.values()),
+        index=2,
+        key=f"radio_{idx}",
+        label_visibility="collapsed",
+    )
     respuesta_num = list(opciones.keys())[list(opciones.values()).index(respuesta)]
 
+    cam_key = f"cam_{st.session_state.test_run_id}"
+    ctx = webrtc_streamer(
+        key=cam_key,
+        video_transformer_factory=FrameCapturer,
+        media_stream_constraints={"video": True, "audio": False},
+        desired_playing_state=True,
+        rtc_configuration={
+            "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+        },
+        video_html_attrs={
+            "autoPlay": True,
+            "controls": False,
+            "muted": True,
+            "width": 420,
+            "height": 280,
+        },
+    )
+    if not ctx.state.playing:
+        st.info("Permite acceso a la camara en el navegador. Al pulsar Siguiente se toma la foto automaticamente.")
 
-    foto = st.camera_input('', label_visibility='collapsed')
+    if st.button("Siguiente", type="primary"):
+        if ctx.video_transformer is None or ctx.video_transformer.frame is None:
+            st.warning("La camara aun no envio imagen. Espera 1-2 segundos e intenta de nuevo.")
+            st.stop()
 
-    if st.button('Siguiente', type='primary'):
-        emocion = 'neutral'
-        if foto is not None:
-            bytes_data = foto.getvalue()
-            nparr = np.frombuffer(bytes_data, np.uint8)
-            frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            emocion, _ = detectar_emocion(frame, yolo, efficientnet)
+        frame = ctx.video_transformer.frame.copy()
 
-        congruencia = calcular_congruencia(item['id'], respuesta_num, emocion)
+        debug_msg = f"Shape: {frame.shape}"
 
-        st.session_state.respuestas[item['id']] = respuesta_num
-        st.session_state.emociones[item['id']] = emocion
-        st.session_state.congruencias[item['id']] = congruencia
+        results = yolo(frame, verbose=False)
+        n_caras = sum(len(r.boxes) for r in results)
+        debug_msg += f" | Caras YOLO: {n_caras}"
+
+        if n_caras == 0:
+            st.warning("No veo tu rostro. Acercate a la camara e intenta otra vez.")
+            st.stop()
+
+        emocion, conf = detectar_emocion(frame, yolo, efficientnet)
+        debug_msg += f" | Emocion: {emocion} ({conf:.2f})"
+
+        logger.info("bigfive_debug: %s", debug_msg)
+
+        congruencia = calcular_congruencia(item["id"], respuesta_num, emocion)
+        st.session_state.respuestas[item["id"]] = respuesta_num
+        st.session_state.emociones[item["id"]] = emocion
+        st.session_state.congruencias[item["id"]] = congruencia
 
         if idx + 1 < 10:
             st.session_state.item_actual += 1
         else:
-            st.session_state.pagina = 'reporte'
-        st.rerun()
+            st.session_state.pagina = "reporte"
 
+        st.rerun()
 # ============================================
 # PAGINA: REPORTE
 # ============================================
@@ -234,6 +281,17 @@ elif st.session_state.pagina == 'reporte':
     )
 
     if st.button('Reiniciar test'):
-        for key in ['pagina', 'item_actual', 'respuestas', 'emociones', 'congruencias', 'nombre']:
-            del st.session_state[key]
+        st.session_state.pagina = 'inicio'
+        st.session_state.item_actual = 0
+        st.session_state.respuestas = {}
+        st.session_state.emociones = {}
+        st.session_state.congruencias = {}
+        st.session_state.test_run_id = st.session_state.get('test_run_id', 0) + 1
+
+        for i in range(10):
+            st.session_state.pop(f'radio_{i}', None)
+
+        if 'nombre' in st.session_state:
+            del st.session_state.nombre
+
         st.rerun()

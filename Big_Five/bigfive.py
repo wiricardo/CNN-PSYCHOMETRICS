@@ -105,14 +105,15 @@ def detectar_emocion(frame, yolo, efficientnet):
             if cara.size == 0:
                 continue
             try:
-                cara_tensor = transform(cara).unsqueeze(0).to(DEVICE)
+                cara_rgb = cv2.cvtColor(cara, cv2.COLOR_BGR2RGB)
+                cara_tensor = transform(cara_rgb).unsqueeze(0).to(DEVICE)
                 with torch.no_grad():
                     output = efficientnet(cara_tensor)
                     probs = torch.softmax(output, dim=1)
                     conf = float(probs.max())
                     idx = output.argmax(1).item()
                     return CLASES[idx], conf
-            except:
+            except Exception:
                 pass
     return 'neutral', 0.0
 
